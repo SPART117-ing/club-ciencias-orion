@@ -44,6 +44,14 @@ st.markdown("""
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
     }
 
+    .announcement-card {
+        background-color: #1D3557;
+        border-left: 4px solid #48CAE4;
+        padding: 12px 16px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+    }
+
     .stButton>button {
         background-color: #48CAE4;
         color: #0B132B;
@@ -81,16 +89,16 @@ if "logged_in" not in st.session_state:
     st.session_state.rol_user = ""
 
 # ==========================================
-# 1. PANTALLA DE ACCESO (LOGIN / REGISTRO)
+# 1. PANTALLA DE ACCESO (LOGIN / REGISTRO / RECUPERACIÓN)
 # ==========================================
 if not st.session_state.logged_in:
     st.markdown("<h1 style='text-align: center;'>Club de Ciencias: Orión</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #8D99AE;'>Plataforma Sincronizada en Tiempo Real</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #8D99AE;'>Plataforma Institucional Sincronizada</p>", unsafe_allow_html=True)
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.markdown('<div class="product-card">', unsafe_allow_html=True)
-        tab_login, tab_registro = st.tabs(["Iniciar Sesión", "Registrarse"])
+        tab_login, tab_registro, tab_recuperar = st.tabs(["Iniciar Sesión", "Registrarse", "Recuperar Pass"])
         
         with tab_login:
             st.markdown("<br>", unsafe_allow_html=True)
@@ -140,6 +148,23 @@ if not st.session_state.logged_in:
                         st.success("¡Cuenta creada con éxito! Ya puede iniciar sesión.")
                 else:
                     st.warning("Por favor complete todos los campos.")
+
+        with tab_recuperar:
+            st.markdown("<br>", unsafe_allow_html=True)
+            email_rec = st.text_input("Correo Registrado", placeholder="tucorreo@orion.edu", key="rec_email")
+            nuevo_pass = st.text_input("Nueva Contraseña", type="password", key="rec_pass")
+            
+            if st.button("Actualizar Contraseña", use_container_width=True):
+                if email_rec and nuevo_pass:
+                    user_ref = db.collection('usuarios').document(email_rec)
+                    if user_ref.get().exists:
+                        user_ref.update({"password": nuevo_pass})
+                        st.success("¡Contraseña actualizada con éxito! Ya puedes iniciar sesión.")
+                    else:
+                        st.error("Este correo no se encuentra registrado en el sistema.")
+                else:
+                    st.warning("Complete ambos campos.")
+
         st.markdown("</div>", unsafe_allow_html=True)
 
 else:
@@ -158,8 +183,19 @@ else:
 
     st.markdown("---")
 
+    # CARGAR AVISOS GENERALES DESDE FIREBASE
+    aviso_ref = db.collection('config').document('avisos').get()
+    texto_aviso = aviso_ref.to_dict().get("mensaje", "Bienvenido al ciclo escolar del Club de Ciencias.") if aviso_ref.exists else "Bienvenidos."
+    
+    if texto_aviso:
+        st.markdown(f"""
+            <div class="announcement-card">
+                <b>📢 Comunicado Oficial:</b> {texto_aviso}
+            </div>
+        """, unsafe_allow_html=True)
+
     if st.session_state.rol_user == "Administrador":
-        menu = st.radio("Menu Admin", ["Encuestas", "Pedidos", "Historial (Excel en Tiempo Real)"], horizontal=True, label_visibility="collapsed")
+        menu = st.radio("Menu Admin", ["Encuestas", "Pedidos", "Historial (Excel en Tiempo Real)", "Avisos / Config"], horizontal=True, label_visibility="collapsed")
     else:
         menu = st.radio("Menu Alumno", ["Encuestas", "Pedidos"], horizontal=True, label_visibility="collapsed")
 
@@ -237,7 +273,7 @@ else:
     # SECCIÓN: HISTORIAL / EXCEL (Admin)
     elif menu == "Historial (Excel en Tiempo Real)" and st.session_state.rol_user == "Administrador":
         st.subheader("Panel Administrativo Global (Tipo Excel)")
-        st.markdown("<p style='color: #8D99AE; font-size: 0.9rem;'>Modifique los abonos o totales; los cambios se guardan y reflejan al instante para los usuarios.</p>", unsafe_allow_html=True)
+        st.markdown("<p style='color: #8D99AE; font-size: 0.9rem;'>Modifique los abonos o totales directamente en la tabla.</p>", unsafe_allow_html=True)
 
         usuarios_ref = db.collection('usuarios').stream()
         df_data = []
@@ -269,6 +305,17 @@ else:
                 })
 
             st.markdown("---")
+            
+            # BOTÓN DE DESCARGA A EXCEL (CSV)
+            csv = edited_df.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Descargar Reporte en Excel (CSV)",
+                data=csv,
+                file_name='reporte_club_orion.csv',
+                mime='text/csv',
+            )
+
+            st.markdown("---")
             col_sum1, col_sum2, col_sum3 = st.columns(3)
             with col_sum1:
                 st.metric("Recaudación Total Esperada", f"${edited_df['Total ($)'].sum()} MXN")
@@ -278,3 +325,14 @@ else:
                 st.metric("Deuda Global Pendiente", f"${edited_df['Restante ($)'].sum()} MXN")
         else:
             st.warning("No hay alumnos registrados todavía.")
+
+    # SECCIÓN: AVISOS Y CONFIGURACIÓN (Admin)
+    elif menu == "Avisos / Config" and st.session_state.rol_user == "Administrador":
+        st.subheader("Configuración de Comunicados Oficiales")
+        st.markdown("<p style='color: #8D99AE; font-size: 0.9rem;'>Escribe un mensaje que aparecerá en la pantalla principal de todos los alumnos al iniciar sesión.</p>", unsafe_allow_html=True)
+
+        nuevo_mensaje = st.text_area("Mensaje del Comunicado", value=texto_aviso)
+        
+        if st.button("Publicar Comunicado"):
+            db.collection('config').document('avisos').set({"mensaje": nuevo_mensaje})
+            st.success("¡Comunicado actualizado y publicado en tiempo real para todo el club!")
