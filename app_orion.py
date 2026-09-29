@@ -1,5 +1,7 @@
 import datetime
 import json
+import smtplib
+from email.message import EmailMessage
 import firebase_admin
 from firebase_admin import credentials, firestore
 import pandas as pd
@@ -89,7 +91,7 @@ if "logged_in" not in st.session_state:
     st.session_state.rol_user = ""
 
 # ==========================================
-# 1. PANTALLA DE ACCESO (LOGIN / REGISTRO / RECUPERACIÓN)
+# 1. PANTALLA DE ACCESO (LOGIN / REGISTRO / RECUPERACIÓN SEGURA)
 # ==========================================
 if not st.session_state.logged_in:
     st.markdown("<h1 style='text-align: center;'>Club de Ciencias: Orión</h1>", unsafe_allow_html=True)
@@ -151,19 +153,42 @@ if not st.session_state.logged_in:
 
         with tab_recuperar:
             st.markdown("<br>", unsafe_allow_html=True)
-            email_rec = st.text_input("Correo Registrado", placeholder="tucorreo@orion.edu", key="rec_email")
-            nuevo_pass = st.text_input("Nueva Contraseña", type="password", key="rec_pass")
+            email_rec = st.text_input("Ingrese su Correo Registrado", placeholder="tucorreo@orion.edu", key="rec_email")
             
-            if st.button("Actualizar Contraseña", use_container_width=True):
-                if email_rec and nuevo_pass:
+            if st.button("Enviar Nueva Contraseña por Correo", use_container_width=True):
+                if email_rec:
                     user_ref = db.collection('usuarios').document(email_rec)
-                    if user_ref.get().exists:
-                        user_ref.update({"password": nuevo_pass})
-                        st.success("¡Contraseña actualizada con éxito! Ya puedes iniciar sesión.")
+                    user_doc = user_ref.get()
+                    if user_doc.exists:
+                        import random
+                        # Generar contraseña temporal aleatoria de 6 dígitos
+                        temp_pass = str(random.randint(100000, 999999))
+                        
+                        # Actualizar en la base de datos de Firebase
+                        user_ref.update({"password": temp_pass})
+                        
+                        # Enviar el correo electrónico real
+                        try:
+                            remitente = st.secrets["email"]["remitente"]
+                            password_mail = st.secrets["email"]["password"]
+                            
+                            msg = EmailMessage()
+                            msg.set_subject("Recuperación de Acceso - Club de Ciencias: Orión")
+                            msg.set_content(f"Hola,\n\nHas solicitado restablecer tu contraseña en la plataforma del Club de Ciencias: Orión.\n\nTu nueva contraseña temporal es: {temp_pass}\n\nTe recomendamos iniciar sesión y cambiarla o mantenerla segura.\n\nAtentamente,\nAdministración - Club de Ciencias: Orión")
+                            msg["From"] = remitente
+                            msg["To"] = email_rec
+                            
+                            with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
+                                smtp.login(remitente, password_mail)
+                                smtp.send_message(msg)
+                                
+                            st.success("¡Correo enviado con éxito! Revisa tu bandeja de entrada (o spam) con tu nueva contraseña temporal.")
+                        except Exception as e:
+                            st.error(f"Error al enviar el correo. Configure los secretos SMTP en Streamlit. Detalle: {e}")
                     else:
                         st.error("Este correo no se encuentra registrado en el sistema.")
                 else:
-                    st.warning("Complete ambos campos.")
+                    st.warning("Por favor ingrese su correo.")
 
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -183,7 +208,6 @@ else:
 
     st.markdown("---")
 
-    # CARGAR AVISOS GENERALES DESDE FIREBASE
     aviso_ref = db.collection('config').document('avisos').get()
     texto_aviso = aviso_ref.to_dict().get("mensaje", "Bienvenido al ciclo escolar del Club de Ciencias.") if aviso_ref.exists else "Bienvenidos."
     
@@ -201,7 +225,6 @@ else:
 
     st.markdown("---")
 
-    # SECCIÓN: ENCUESTAS
     if menu == "Encuestas":
         st.subheader("Módulo de Encuestas: Requerimiento de Indumentaria")
         productos = {
@@ -247,7 +270,6 @@ else:
             else:
                 st.warning("Seleccione al menos un producto.")
 
-    # SECCIÓN: PEDIDOS
     elif menu == "Pedidos":
         st.subheader("Módulo de Pedidos y Estado de Cuenta")
         
@@ -270,7 +292,6 @@ else:
         st.markdown(f"**Artículos seleccionados:** {user_data.get('seleccion', 'Ninguna')}")
         st.success("Sincronizado en tiempo real con la base de datos de la nube.")
 
-    # SECCIÓN: HISTORIAL / EXCEL (Admin)
     elif menu == "Historial (Excel en Tiempo Real)" and st.session_state.rol_user == "Administrador":
         st.subheader("Panel Administrativo Global (Tipo Excel)")
         st.markdown("<p style='color: #8D99AE; font-size: 0.9rem;'>Modifique los abonos o totales directamente en la tabla.</p>", unsafe_allow_html=True)
@@ -305,8 +326,6 @@ else:
                 })
 
             st.markdown("---")
-            
-            # BOTÓN DE DESCARGA A EXCEL (CSV)
             csv = edited_df.to_csv(index=False).encode('utf-8')
             st.download_button(
                 label="📥 Descargar Reporte en Excel (CSV)",
@@ -326,7 +345,6 @@ else:
         else:
             st.warning("No hay alumnos registrados todavía.")
 
-    # SECCIÓN: AVISOS Y CONFIGURACIÓN (Admin)
     elif menu == "Avisos / Config" and st.session_state.rol_user == "Administrador":
         st.subheader("Configuración de Comunicados Oficiales")
         st.markdown("<p style='color: #8D99AE; font-size: 0.9rem;'>Escribe un mensaje que aparecerá en la pantalla principal de todos los alumnos al iniciar sesión.</p>", unsafe_allow_html=True)
