@@ -1,31 +1,9 @@
 import datetime
-from google.cloud import firestore
-import pandas as pd
-import streamlit as st
 import json
 import firebase_admin
 from firebase_admin import credentials, firestore
-
-@st.cache_resource
-def init_firebase():
-    if not firebase_admin._apps:
-        # Cargamos el JSON de los secretos de forma segura
-        secret_json = json.loads(st.secrets["firebase"]["cred_json"])
-        cred = credentials.Certificate(secret_json)
-        firebase_admin.initialize_app(cred)
-    return firestore.client()
-db = init_firebase()
-    if not firebase_admin._apps:
-        try:
-            # Lee los secretos desde la configuración de Streamlit Cloud
-            secret_dict = dict(st.secrets["firebase"])
-            cred = credentials.Certificate(secret_dict)
-            firebase_admin.initialize_app(cred)
-        except Exception as e:
-            st.error(f"Error al inicializar Firebase con los secretos: {e}")
-    return firestore.client()
-
-db = init_firebase()
+import pandas as pd
+import streamlit as st
 
 # Configuración de la página
 st.set_page_config(
@@ -86,21 +64,12 @@ st.markdown("""
 # ---------------------------------------------------------
 # CONEXIÓN A FIREBASE FIRESTORE EN TIEMPO REAL
 # ---------------------------------------------------------
-import firebase_admin
-from firebase_admin import credentials, firestore
-
 @st.cache_resource
 def init_firebase():
     if not firebase_admin._apps:
-        # Lee las credenciales desde los secretos seguros de Streamlit Cloud
-        # O inicializa con el archivo local si estás probando en tu PC
-        try:
-            secret_dict = dict(st.secrets["firebase"])
-            cred = credentials.Certificate(secret_dict)
-            firebase_admin.initialize_app(cred)
-        except:
-            # Fallback para pruebas locales si no hay secretos configurados aún
-            pass
+        secret_json = json.loads(st.secrets["firebase"]["cred_json"])
+        cred = credentials.Certificate(secret_json)
+        firebase_admin.initialize_app(cred)
     return firestore.client()
 
 db = init_firebase()
@@ -130,7 +99,6 @@ if not st.session_state.logged_in:
             
             if st.button("Entrar a la Plataforma", use_container_width=True):
                 if email_login and pass_login:
-                    # Consultar usuario en Firestore
                     user_ref = db.collection('usuarios').document(email_login).get()
                     if user_ref.exists:
                         user_data = user_ref.to_dict()
@@ -161,7 +129,6 @@ if not st.session_state.logged_in:
                     else:
                         rol_asignado = "Administrador" if ("admin" in email_reg.lower() or "maestro" in email_reg.lower()) else "Alumno"
                         
-                        # Guardar nuevo usuario en Firestore en tiempo real
                         db.collection('usuarios').document(email_reg).set({
                             "nombre": nombre_reg,
                             "password": pass_reg,
@@ -236,7 +203,6 @@ else:
         if st.button("Guardar Selección en la Nube"):
             if seleccionados:
                 user_key = st.session_state.email_user
-                # Actualizar directamente en Firestore
                 db.collection('usuarios').document(user_key).update({
                     "total": total_encuesta,
                     "seleccion": ", ".join(seleccionados)
@@ -249,7 +215,6 @@ else:
     elif menu == "Pedidos":
         st.subheader("Módulo de Pedidos y Estado de Cuenta")
         
-        # Obtener datos actualizados desde Firestore en tiempo real
         user_doc = db.collection('usuarios').document(st.session_state.email_user).get()
         user_data = user_doc.to_dict() if user_doc.exists else {"total": 0, "abonado": 0, "seleccion": ""}
         
@@ -274,7 +239,6 @@ else:
         st.subheader("Panel Administrativo Global (Tipo Excel)")
         st.markdown("<p style='color: #8D99AE; font-size: 0.9rem;'>Modifique los abonos o totales; los cambios se guardan y reflejan al instante para los usuarios.</p>", unsafe_allow_html=True)
 
-        # Leer todos los usuarios de Firestore
         usuarios_ref = db.collection('usuarios').stream()
         df_data = []
         
@@ -295,7 +259,6 @@ else:
         if not df.empty:
             edited_df = st.data_editor(df, num_rows="dynamic", use_container_width=True, key="cloud_excel")
 
-            # Sincronizar cambios editados en la tabla directamente a Firestore
             for index, row in edited_df.iterrows():
                 correo = row["Correo"]
                 db.collection('usuarios').document(correo).update({
