@@ -3,6 +3,22 @@ from google.cloud import firestore
 import pandas as pd
 import streamlit as st
 import json
+import firebase_admin
+from firebase_admin import credentials, firestore
+
+@st.cache_resource
+def init_firebase():
+    if not firebase_admin._apps:
+        try:
+            # Lee los secretos desde la configuración de Streamlit Cloud
+            secret_dict = dict(st.secrets["firebase"])
+            cred = credentials.Certificate(secret_dict)
+            firebase_admin.initialize_app(cred)
+        except Exception as e:
+            st.error(f"Error al inicializar Firebase con los secretos: {e}")
+    return firestore.client()
+
+db = init_firebase()
 
 # Configuración de la página
 st.set_page_config(
