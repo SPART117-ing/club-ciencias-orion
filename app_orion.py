@@ -9,6 +9,14 @@ from firebase_admin import credentials, firestore
 @st.cache_resource
 def init_firebase():
     if not firebase_admin._apps:
+        # Cargamos el JSON de los secretos de forma segura
+        secret_json = json.loads(st.secrets["firebase"]["cred_json"])
+        cred = credentials.Certificate(secret_json)
+        firebase_admin.initialize_app(cred)
+    return firestore.client()
+
+db = init_firebase()
+    if not firebase_admin._apps:
         try:
             # Lee los secretos desde la configuración de Streamlit Cloud
             secret_dict = dict(st.secrets["firebase"])
