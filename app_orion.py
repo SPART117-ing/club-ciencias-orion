@@ -14,7 +14,6 @@ def init_firebase():
         cred = credentials.Certificate(secret_json)
         firebase_admin.initialize_app(cred)
     return firestore.client()
-
 db = init_firebase()
     if not firebase_admin._apps:
         try:
