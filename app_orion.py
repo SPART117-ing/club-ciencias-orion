@@ -7,10 +7,10 @@ from firebase_admin import credentials, firestore
 import pandas as pd
 import streamlit as st
 
-# Configuración de la página
+# Configuración de la página con título profesional y logo de pestaña
 st.set_page_config(
-    page_title="Club de Ciencias: Orión",
-    page_icon="🌌",
+    page_title="Club de Ciencias: Orión | CBTA 184",
+    page_icon="logo.png",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -94,6 +94,14 @@ if "logged_in" not in st.session_state:
 # 1. PANTALLA DE ACCESO (LOGIN / REGISTRO / RECUPERACIÓN SEGURA)
 # ==========================================
 if not st.session_state.logged_in:
+    # Encabezado visual con el Logo Institucional
+    col_l1, col_l2, col_l3 = st.columns([2, 1, 2])
+    with col_l2:
+        try:
+            st.image("logo.png", width=130)
+        except Exception:
+            st.markdown("<h2 style='text-align: center;'>🌌</h2>", unsafe_allow_html=True)
+
     st.markdown("<h1 style='text-align: center;'>Club de Ciencias: Orión</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #8D99AE;'>Plataforma Institucional Sincronizada</p>", unsafe_allow_html=True)
     
@@ -193,7 +201,15 @@ else:
     # ==========================================
     # 2. PANEL PRINCIPAL (POST-LOGIN)
     # ==========================================
-    st.title("Club de Ciencias: Orión")
+    col_h1, col_h2 = st.columns([0.1, 5])
+    with col_h1:
+        try:
+            st.image("logo.png", width=50)
+        except Exception:
+            pass
+    with col_h2:
+        st.title("Club de Ciencias: Orión")
+        
     st.markdown(f"<p style='color: #8D99AE; font-size: 0.9rem;'>Usuario: <b>{st.session_state.nombre_user}</b> | Rol: <span style='color: #48CAE4;'>{st.session_state.rol_user}</span></p>", unsafe_allow_html=True)
 
     if st.button("Cerrar Sesión"):
@@ -303,7 +319,6 @@ else:
                 abonado_val = info.get("abonado", 0)
                 restante_val = total_val - abonado_val
                 
-                # Estado automático para visualización clara
                 estado = "Pagado 🟢" if restante_val <= 0 and total_val > 0 else ("Pendiente 🟡" if restante_val > 0 else "Sin Pedido ⚪")
 
                 df_data.append({
@@ -319,7 +334,6 @@ else:
         df = pd.DataFrame(df_data)
 
         if not df.empty:
-            # Función para colorear filas o celdas automáticamente según el estado financiero
             def color_estado(val):
                 if "Pagado" in str(val):
                     return 'background-color: #1b4332; color: #d8f3dc;'
@@ -329,7 +343,6 @@ else:
 
             df_styled = df.style.map(color_estado, subset=['Estado'])
 
-            # Editor interactivo tipo Excel
             edited_df = st.data_editor(df_styled, num_rows="dynamic", use_container_width=True, key="cloud_excel")
 
             for index, row in edited_df.iterrows():
@@ -343,7 +356,6 @@ else:
 
             st.markdown("---")
             
-            # BOTÓN DE DESCARGA A EXCEL (CSV optimizado con codificación UTF-8 BOM para tildes y caracteres en Excel)
             csv = edited_df.to_csv(index=False).encode('utf-8-sig')
             st.download_button(
                 label="📥 Descargar Reporte Compatible con Excel (.CSV)",
