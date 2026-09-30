@@ -7,7 +7,7 @@ from firebase_admin import credentials, firestore
 import pandas as pd
 import streamlit as st
 
-# Configuración de la página con metadatos personalizados para el acceso directo
+# Configuración de la página
 st.set_page_config(
     page_title="Club de Ciencias: Orión | CBTA 184",
     page_icon="logo.png",
@@ -15,13 +15,8 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Inyección de HTML para forzar el icono y nombre personalizado en accesos directos de móviles y PC
+# Estilos CSS limpios y profesionales
 st.markdown("""
-    <head>
-        <meta name="apple-mobile-web-app-title" content="Club Orión">
-        <meta name="application-name" content="Club Orión">
-        <link rel="apple-touch-icon" href="logo.png">
-    </head>
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
@@ -189,7 +184,7 @@ if not st.session_state.logged_in:
                         except Exception as e:
                             st.error(f"Error al enviar el correo. Detalle: {e}")
                     else:
-                        st.error("This email is not registered in the system.")
+                        st.error("Este correo no se encuentra registrado en el sistema.")
                 else:
                     st.warning("Por favor ingrese su correo.")
 
