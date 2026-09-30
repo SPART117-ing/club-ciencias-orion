@@ -100,7 +100,7 @@ if not st.session_state.logged_in:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.markdown('<div class="product-card">', unsafe_allow_html=True)
-        tab_login, tab_registro, tab_recuperar = st.tabs(["Iniciar Sesión", "Registrarse", "Recuperar Pass"])
+        tab_login, tab_registro, tab_recuperar = st.tabs(["Iniciar Sesión", "Registrarse", "Recuperar Contraseña"])
         
         with tab_login:
             st.markdown("<br>", unsafe_allow_html=True)
