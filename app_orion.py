@@ -7,7 +7,7 @@ from firebase_admin import credentials, firestore
 import pandas as pd
 import streamlit as st
 
-# Configuración de la página con título profesional y logo de pestaña
+# Configuración de la página (El logo.png aquí actúa como ícono de pestaña y de acceso directo PWA)
 st.set_page_config(
     page_title="Club de Ciencias: Orión | CBTA 184",
     page_icon="logo.png",
@@ -15,7 +15,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Estilos CSS ejecutivos y limpios
+# Estilos CSS ejecutivos, limpios y perfectamente centrados
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -40,10 +40,10 @@ st.markdown("""
     .product-card {
         background-color: #1C2541;
         border: 1px solid #3A506B;
-        padding: 12px 16px;
-        border-radius: 8px;
-        margin-bottom: 10px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+        padding: 16px 20px;
+        border-radius: 10px;
+        margin-bottom: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.12);
     }
 
     .announcement-card {
@@ -94,21 +94,15 @@ if "logged_in" not in st.session_state:
 # 1. PANTALLA DE ACCESO (LOGIN / REGISTRO / RECUPERACIÓN SEGURA)
 # ==========================================
 if not st.session_state.logged_in:
-    # Encabezado visual con el Logo Institucional
-    col_l1, col_l2, col_l3 = st.columns([2, 1, 2])
-    with col_l2:
-        try:
-            st.image("logo.png", width=130)
-        except Exception:
-            st.markdown("<h2 style='text-align: center;'>🌌</h2>", unsafe_allow_html=True)
-
-    st.markdown("<h1 style='text-align: center;'>Club de Ciencias: Orión</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #8D99AE;'>Plataforma Institucional Sincronizada</p>", unsafe_allow_html=True)
+    # Encabezado limpio y perfectamente centrado sin imágenes flotantes extrañas
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; font-size: 2.5rem;'>Club de Ciencias: Orión</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #8D99AE; font-size: 1.1rem; margin-bottom: 30px;'>Plataforma Institucional Sincronizada</p>", unsafe_allow_html=True)
     
-    col1, col2, col3 = st.columns([1, 2, 1])
+    col1, col2, col3 = st.columns([1, 1.2, 1])
     with col2:
         st.markdown('<div class="product-card">', unsafe_allow_html=True)
-        tab_login, tab_registro, tab_recuperar = st.tabs(["Iniciar Sesión", "Registrarse", "Recuperar Contraseña"])
+        tab_login, tab_registro, tab_recuperar = st.tabs(["Iniciar Sesión", "Registrarse", "Recuperar Pass"])
         
         with tab_login:
             st.markdown("<br>", unsafe_allow_html=True)
@@ -201,15 +195,7 @@ else:
     # ==========================================
     # 2. PANEL PRINCIPAL (POST-LOGIN)
     # ==========================================
-    col_h1, col_h2 = st.columns([0.1, 5])
-    with col_h1:
-        try:
-            st.image("logo.png", width=50)
-        except Exception:
-            pass
-    with col_h2:
-        st.title("Club de Ciencias: Orión")
-        
+    st.title("Club de Ciencias: Orión")
     st.markdown(f"<p style='color: #8D99AE; font-size: 0.9rem;'>Usuario: <b>{st.session_state.nombre_user}</b> | Rol: <span style='color: #48CAE4;'>{st.session_state.rol_user}</span></p>", unsafe_allow_html=True)
 
     if st.button("Cerrar Sesión"):
