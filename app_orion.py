@@ -128,7 +128,7 @@ if not st.session_state.logged_in:
         with tab_registro:
             st.markdown("<br>", unsafe_allow_html=True)
             nombre_reg = st.text_input("Nombre Completo", placeholder="Ej. Eneas Alvarez", key="reg_name")
-            email_reg = st.text_input("Correo Institucional", placeholder="ejemplo@orion.edu", key="reg_email")
+            email_reg = st.text_input("Correo Institucional", placeholder="ejemplo@gmail.com", key="reg_email")
             pass_reg = st.text_input("Crear Contraseña", type="password", key="reg_pass")
             
             if st.button("Crear Cuenta", use_container_width=True):
