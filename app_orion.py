@@ -7,7 +7,7 @@ from firebase_admin import credentials, firestore
 import pandas as pd
 import streamlit as st
 
-# Configuración de la página (El logo.png aquí actúa como ícono de pestaña y de acceso directo PWA)
+# Configuración de la página con metadatos personalizados para el acceso directo
 st.set_page_config(
     page_title="Club de Ciencias: Orión | CBTA 184",
     page_icon="logo.png",
@@ -15,8 +15,13 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Estilos CSS ejecutivos, limpios y perfectamente centrados
+# Inyección de HTML para forzar el icono y nombre personalizado en accesos directos de móviles y PC
 st.markdown("""
+    <head>
+        <meta name="apple-mobile-web-app-title" content="Club Orión">
+        <meta name="application-name" content="Club Orión">
+        <link rel="apple-touch-icon" href="logo.png">
+    </head>
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
     
@@ -94,7 +99,6 @@ if "logged_in" not in st.session_state:
 # 1. PANTALLA DE ACCESO (LOGIN / REGISTRO / RECUPERACIÓN SEGURA)
 # ==========================================
 if not st.session_state.logged_in:
-    # Encabezado limpio y perfectamente centrado sin imágenes flotantes extrañas
     st.markdown("<br>", unsafe_allow_html=True)
     st.markdown("<h1 style='text-align: center; font-size: 2.5rem;'>Club de Ciencias: Orión</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #8D99AE; font-size: 1.1rem; margin-bottom: 30px;'>Plataforma Institucional Sincronizada</p>", unsafe_allow_html=True)
@@ -185,7 +189,7 @@ if not st.session_state.logged_in:
                         except Exception as e:
                             st.error(f"Error al enviar el correo. Detalle: {e}")
                     else:
-                        st.error("Este correo no se encuentra registrado en el sistema.")
+                        st.error("This email is not registered in the system.")
                 else:
                     st.warning("Por favor ingrese su correo.")
 
