@@ -128,7 +128,7 @@ if not st.session_state.logged_in:
         with tab_registro:
             st.markdown("<br>", unsafe_allow_html=True)
             nombre_reg = st.text_input("Nombre Completo", placeholder="Ej. Eneas Alvarez", key="reg_name")
-            email_reg = st.text_input("Correo Institucional", placeholder="ejemplo@gmail.com", key="reg_email")
+            email_reg = st.text_input("Correo Institucional", placeholder="ejemplo@orion.edu", key="reg_email")
             pass_reg = st.text_input("Crear Contraseña", type="password", key="reg_pass")
             
             if st.button("Crear Cuenta", use_container_width=True):
@@ -161,30 +161,27 @@ if not st.session_state.logged_in:
                     user_doc = user_ref.get()
                     if user_doc.exists:
                         import random
-                        # Generar contraseña temporal aleatoria de 6 dígitos
                         temp_pass = str(random.randint(100000, 999999))
                         
-                        # Actualizar en la base de datos de Firebase
                         user_ref.update({"password": temp_pass})
                         
-                        # Enviar el correo electrónico real
                         try:
                             remitente = st.secrets["email"]["remitente"]
                             password_mail = st.secrets["email"]["password"]
                             
                             msg = EmailMessage()
-                            msg.set_subject("Recuperación de Acceso - Club de Ciencias: Orión")
+                            msg['Subject'] = "Recuperación de Acceso - Club de Ciencias: Orión"
+                            msg['From'] = remitente
+                            msg['To'] = email_rec
                             msg.set_content(f"Hola,\n\nHas solicitado restablecer tu contraseña en la plataforma del Club de Ciencias: Orión.\n\nTu nueva contraseña temporal es: {temp_pass}\n\nTe recomendamos iniciar sesión y cambiarla o mantenerla segura.\n\nAtentamente,\nAdministración - Club de Ciencias: Orión")
-                            msg["From"] = remitente
-                            msg["To"] = email_rec
                             
                             with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
                                 smtp.login(remitente, password_mail)
                                 smtp.send_message(msg)
                                 
-                            st.success("¡Correo enviado con éxito! Revisa tu bandeja de entrada (o spam) con tu nueva contraseña temporal.")
+                            st.success("¡Correo enviado con éxito! Revisa tu bandeja de entrada o spam con tu contraseña temporal.")
                         except Exception as e:
-                            st.error(f"Error al enviar el correo. Configure los secretos SMTP en Streamlit. Detalle: {e}")
+                            st.error(f"Error al enviar el correo. Detalle: {e}")
                     else:
                         st.error("Este correo no se encuentra registrado en el sistema.")
                 else:
@@ -294,7 +291,7 @@ else:
 
     elif menu == "Historial (Excel en Tiempo Real)" and st.session_state.rol_user == "Administrador":
         st.subheader("Panel Administrativo Global (Tipo Excel)")
-        st.markdown("<p style='color: #8D99AE; font-size: 0.9rem;'>Modifique los abonos o totales directamente en la tabla.</p>", unsafe_allow_html=True)
+        st.markdown("<p style='color: #8D99AE; font-size: 0.9rem;'>Modifique los abonos o totales directamente en la tabla. Los cambios se sincronizan al instante.</p>", unsafe_allow_html=True)
 
         usuarios_ref = db.collection('usuarios').stream()
         df_data = []
@@ -302,19 +299,38 @@ else:
         for doc in usuarios_ref:
             info = doc.to_dict()
             if info.get("rol") == "Alumno":
+                total_val = info.get("total", 0)
+                abonado_val = info.get("abonado", 0)
+                restante_val = total_val - abonado_val
+                
+                # Estado automático para visualización clara
+                estado = "Pagado 🟢" if restante_val <= 0 and total_val > 0 else ("Pendiente 🟡" if restante_val > 0 else "Sin Pedido ⚪")
+
                 df_data.append({
                     "Correo": doc.id,
                     "Nombre": info.get("nombre", ""),
                     "Selección": info.get("seleccion", ""),
-                    "Total ($)": info.get("total", 0),
-                    "Abonado ($)": info.get("abonado", 0),
-                    "Restante ($)": info.get("total", 0) - info.get("abonado", 0)
+                    "Total ($)": total_val,
+                    "Abonado ($)": abonado_val,
+                    "Restante ($)": restante_val,
+                    "Estado": estado
                 })
 
         df = pd.DataFrame(df_data)
 
         if not df.empty:
-            edited_df = st.data_editor(df, num_rows="dynamic", use_container_width=True, key="cloud_excel")
+            # Función para colorear filas o celdas automáticamente según el estado financiero
+            def color_estado(val):
+                if "Pagado" in str(val):
+                    return 'background-color: #1b4332; color: #d8f3dc;'
+                elif "Pendiente" in str(val):
+                    return 'background-color: #7f4f24; color: #fff3b0;'
+                return ''
+
+            df_styled = df.style.map(color_estado, subset=['Estado'])
+
+            # Editor interactivo tipo Excel
+            edited_df = st.data_editor(df_styled, num_rows="dynamic", use_container_width=True, key="cloud_excel")
 
             for index, row in edited_df.iterrows():
                 correo = row["Correo"]
@@ -326,9 +342,11 @@ else:
                 })
 
             st.markdown("---")
-            csv = edited_df.to_csv(index=False).encode('utf-8')
+            
+            # BOTÓN DE DESCARGA A EXCEL (CSV optimizado con codificación UTF-8 BOM para tildes y caracteres en Excel)
+            csv = edited_df.to_csv(index=False).encode('utf-8-sig')
             st.download_button(
-                label="📥 Descargar Reporte en Excel (CSV)",
+                label="📥 Descargar Reporte Compatible con Excel (.CSV)",
                 data=csv,
                 file_name='reporte_club_orion.csv',
                 mime='text/csv',
